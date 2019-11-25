@@ -7,6 +7,7 @@ const readdir = promisify(fs.readdir);
 const config = require('../config/defaultConfig.js');
 const compress = require('./compress');
 const range = require('./range');
+const isFresh = require('./cache');
 
 const tplPath = path.join(__dirname, '../template/dir.tpl')
 const source = fs.readFileSync(tplPath, 'utf-8');
@@ -18,6 +19,13 @@ module.exports = async function (req, res, filePath) {
         if (stats.isFile()) {
             res.statusCode = 200;
             res.setHeader('Content-Type', 'text/plain');
+
+            if (isFresh(stats, req, res)) {
+                res.statusCode = 304;
+                res.end();
+                return
+            }
+
             let rs;
             const {code, start, end} = range(start.size, req, res);
             if (code === 200) {
